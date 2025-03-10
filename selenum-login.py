@@ -14,8 +14,8 @@ def setup_browser():
     chrome_options.add_argument("--allow-insecure-localhost")  # Allow localhost with self-signed certs
 
     driver = webdriver.Chrome(options=chrome_options)
-    yield driver  # Provide the driver to the test
-    driver.quit()  # Cleanup after tests
+    yield driver
+    driver.quit()
 
 def test_login(setup_browser):
     """Automated test for login functionality."""
