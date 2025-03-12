@@ -107,6 +107,7 @@ spec:
   volumes:
   - name: nfs-data
     nfs:
-      # Adjust namespace if the nfs-server is in a different one
-      server: nfs-server.openshift-mtv.svc.cluster.local
+      # Adjust the server Cluster IP
+      # oc get svc nfs-server -n openshift-mtv
+      server: 10.0.0.1
       path: /exports
