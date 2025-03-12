@@ -1,0 +1,112 @@
+###
+# 1) DataVolume: automatically downloads vm.ova into PVC "dv-ova"
+###
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: dv-ova
+spec:
+  source:
+    http:
+      url: "https://github.com/kubev2v/forkliftci/releases/download/v9.0/vm.ova"
+  storage:
+    # Adjust 'storageClassName' based on your environment
+    storageClassName: kubevirt-csi-infra-default
+    volumeMode: Filesystem
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 640Mi
+---
+###
+# 2) NFS Server Deployment: exports the PVC from (1)
+###
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-server
+  template:
+    metadata:
+      labels:
+        app: nfs-server
+    spec:
+      containers:
+      - name: nfs-server
+        # Simple NFS example image
+        image: k8s.gcr.io/volume-nfs:0.8
+        
+        # NFS requires these ports (port 111 is both TCP/UDP)
+        ports:
+        - name: nfs
+          containerPort: 2049
+        - name: mountd
+          containerPort: 20048
+        - name: rpcbind
+          containerPort: 111
+        - name: rpcbind-udp
+          containerPort: 111
+          protocol: UDP
+
+        # Export the PVC at /exports
+        volumeMounts:
+        - name: nfs-volume
+          mountPath: /exports
+
+      volumes:
+      - name: nfs-volume
+        persistentVolumeClaim:
+          claimName: dv-ova
+---
+###
+# 3) NFS Server Service: exposes the Deployment to other Pods
+###
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-server
+spec:
+  selector:
+    app: nfs-server
+  ports:
+  - name: nfs
+    port: 2049
+    targetPort: 2049
+  - name: mountd
+    port: 20048
+    targetPort: 20048
+  - name: rpcbind
+    port: 111
+    targetPort: 111
+  - name: rpcbind-udp
+    port: 111
+    targetPort: 111
+    protocol: UDP
+---
+###
+# 4) (Optional) Client Pod to test mounting the NFS share
+###
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-client-example
+spec:
+  containers:
+  - name: test-nfs
+    image: busybox
+    command: ["/bin/sh", "-c"]
+    args: ["echo 'Listing files in /mnt/data:'; ls -lh /mnt/data; sleep 3600"]
+    volumeMounts:
+    - name: nfs-data
+      mountPath: /mnt/data
+  volumes:
+  - name: nfs-data
+    nfs:
+      # Adjust namespace if the nfs-server is in a different one
+      server: nfs-server.openshift-mtv.svc.cluster.local
+      path: /exports
