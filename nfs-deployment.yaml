@@ -10,7 +10,6 @@ spec:
     http:
       url: "https://github.com/kubev2v/forkliftci/releases/download/v9.0/vm.ova"
   storage:
-    # Adjust 'storageClassName' based on your environment
     storageClassName: kubevirt-csi-infra-default
     volumeMode: Filesystem
     accessModes:
@@ -20,8 +19,15 @@ spec:
         storage: 640Mi
 ---
 ###
-# 2) NFS Server Deployment: exports the PVC from (1)
+# 2) NFS Server Deployment
 ###
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  # oc adm policy add-scc-to-user privileged -z nfs-privileged
+  name: nfs-privileged
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,12 +42,14 @@ spec:
       labels:
         app: nfs-server
     spec:
+      serviceAccountName: nfs-privileged
+
       containers:
       - name: nfs-server
-        # Simple NFS example image
         image: k8s.gcr.io/volume-nfs:0.8
-        
-        # NFS requires these ports (port 111 is both TCP/UDP)
+        securityContext:
+          privileged: true
+
         ports:
         - name: nfs
           containerPort: 2049
@@ -53,7 +61,6 @@ spec:
           containerPort: 111
           protocol: UDP
 
-        # Export the PVC at /exports
         volumeMounts:
         - name: nfs-volume
           mountPath: /exports
@@ -64,7 +71,7 @@ spec:
           claimName: dv-ova
 ---
 ###
-# 3) NFS Server Service: exposes the Deployment to other Pods
+# 3) NFS Server Service
 ###
 apiVersion: v1
 kind: Service
@@ -107,7 +114,8 @@ spec:
   volumes:
   - name: nfs-data
     nfs:
-      # Adjust the server Cluster IP
+      # Adjust namespace if the nfs-server is in a different one
       # oc get svc nfs-server -n openshift-mtv
-      server: 10.0.0.1
+      server: 172.31.240.132
       path: /exports
+
