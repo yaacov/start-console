@@ -1,3 +1,9 @@
+# Start an NFS server on openshift-mtv namespace
+# Importatnt: 
+#    - Use the servie IP
+#    - NFS path is /ova ( for example, nfs path can look like: "122.12.3.211:/pva" )
+# oc apply -f https://raw.githubusercontent.com/yaacov/start-console/refs/heads/main/nfs-deployment.yaml
+
 ###############################################################################
 # (1) ServiceAccount: "nfs-privileged"
 ###############################################################################
