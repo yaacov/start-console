@@ -6,7 +6,6 @@ kind: ServiceAccount
 metadata:
   name: nfs-privileged
   namespace: openshift-mtv
-
 ---
 ###############################################################################
 # (2) RoleBinding: Grant privileged SCC to service account
