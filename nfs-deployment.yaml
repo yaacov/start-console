@@ -1,4 +1,4 @@
-# Start an NFS server on openshift-mtv namespace
+# Start an NFS server
 # Importatnt: 
 #    - Use the servie IP
 #    - NFS path is /ova ( for example, nfs path can look like: "122.12.3.211:/pva" )
@@ -11,7 +11,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: nfs-privileged
-  namespace: openshift-mtv
 ---
 ###############################################################################
 # (2) RoleBinding: Grant privileged SCC to service account
@@ -20,7 +19,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: nfs-privileged-scc
-  namespace: openshift-mtv
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -28,7 +26,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: nfs-privileged
-  namespace: openshift-mtv
+  
 ---
 ###############################################################################
 # (3) PVC in Filesystem mode
@@ -37,7 +35,6 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: nfs-pvc
-  namespace: openshift-mtv
 spec:
   accessModes:
     - ReadWriteOnce
@@ -54,7 +51,6 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: nfs-server-with-downloader
-  namespace: openshift-mtv
   labels:
     name: nfs-server
 spec:
@@ -157,7 +153,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nfs-service
-  namespace: openshift-mtv
 spec:
   selector:
     name: nfs-server
